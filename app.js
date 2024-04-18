@@ -222,7 +222,7 @@ function getGribData(targetMoment){
             else {
                 foundCurrentData = true
                 // don't rewrite stamps
-                if(!checkPath('json-data/'+ stamp +'.f000.json', false)) {
+                if(!checkPath('/var/www/html/weather/tile/wind_particles/'+ stamp +'.f000.json', false)) {
 
                     console.log('piping ' + stamp);
 
@@ -258,7 +258,7 @@ function convertGribToJson(stamp, targetMoment){
 
     var exec = require('child_process').exec, child;
 
-    child = exec('converter/bin/grib2json --data --output json-data/'+stamp+'.json --names --compact grib-data/'+stamp+'.f000',
+    child = exec('converter/bin/grib2json --data --output /var/www/html/weather/tile/wind_particles/'+stamp+'.json --names --compact grib-data/'+stamp+'.f000',
         {maxBuffer: 500*1024},
         function (error, stdout, stderr){
 
@@ -276,7 +276,7 @@ function convertGribToJson(stamp, targetMoment){
                 var prevMoment = moment(targetMoment).subtract(6, 'hours');
                 var prevStamp = prevMoment.format('YYYYMMDD') + roundHours(prevMoment.hour(), 6);
 
-                if(!checkPath('json-data/'+ prevStamp +'.json', false)){
+                if(!checkPath('/var/www/html/weather/tile/wind_particles/'+ prevStamp +'.json', false)){
 
                     console.log("Run forecast for: "+ stamp);
                     runForecast(targetMoment);
@@ -331,7 +331,7 @@ function getGribDataForecast(targetMoment, forecast, hours){
             else {
 
                 // don't rewrite stamps
-                if(!checkPath('json-data/'+ moment(stamp, "YYYYMMDDHH").add(hours, 'hours').format("YYYYMMDDHH") +'.json', false)) {
+                if(!checkPath('/var/www/html/weather/tile/wind_particles/'+ moment(stamp, "YYYYMMDDHH").add(hours, 'hours').format("YYYYMMDDHH") +'.json', false)) {
 
                     console.log('piping ' + stamp +'.'+forecast);
 
@@ -363,11 +363,11 @@ function getGribDataForecast(targetMoment, forecast, hours){
 function convertGribToJsonForecast(stamp, targetMoment, forecast, hours){
 
     // mk sure we've got somewhere to put output
-    checkPath('json-data', true);
+    checkPath('/var/www/html/weather/tile/wind_particles', true);
 
     var exec = require('child_process').exec, child;
 
-    child = exec('converter/bin/grib2json --data --output json-data/'+moment(stamp, "YYYYMMDDHH").add(hours, 'hours').format("YYYYMMDDHH")+'.json --names --compact grib-data/'+stamp+'.'+forecast,
+    child = exec('converter/bin/grib2json --data --output /var/www/html/weather/tile/wind_particles/'+moment(stamp, "YYYYMMDDHH").add(hours, 'hours').format("YYYYMMDDHH")+'.json --names --compact grib-data/'+stamp+'.'+forecast,
         {maxBuffer: 500*1024},
         function (error, stdout, stderr){
 
