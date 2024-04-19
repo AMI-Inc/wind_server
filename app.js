@@ -200,8 +200,8 @@ function getGribData(targetMoment){
                 lev_surface: 'on',
                 var_UGRD: 'on',
                 var_VGRD: 'on',
-                leftlon: 0,
-                rightlon: 360,
+                leftlon: 0, //-360
+                rightlon: 360, 
                 toplat: 90,
                 bottomlat: -90,
                 dir: '/gfs.'+urlstamp
@@ -310,7 +310,7 @@ function getGribDataForecast(targetMoment, forecast, hours){
                 lev_surface: 'on',
                 var_UGRD: 'on',
                 var_VGRD: 'on',
-                leftlon: 0,
+                leftlon: 0, //-360
                 rightlon: 360,
                 toplat: 90,
                 bottomlat: -90,
@@ -360,26 +360,60 @@ function getGribDataForecast(targetMoment, forecast, hours){
     return deferred.promise;
 }
 
-function convertGribToJsonForecast(stamp, targetMoment, forecast, hours){
+function roundNumbers(obj) {
+    if (typeof obj === 'number') {
+        return parseFloat(obj.toFixed(2));
+    } else if (Array.isArray(obj)) {
+        return obj.map(roundNumbers);
+    } else if (typeof obj === 'object' && obj !== null) {
+        const newObj = {};
+        for (const key in obj) {
+            newObj[key] = roundNumbers(obj[key]);
+        }
+        return newObj;
+    }
+    return obj;
+}
 
-    // mk sure we've got somewhere to put output
-    checkPath('/var/www/html/weather/tile/wind_particles', true);
+function convertGribToJsonForecast(stamp, forecast, hours) {
+    const outputFile = `/var/www/html/weather/tile/wind_particles/${moment(stamp, "YYYYMMDDHH").add(hours, 'hours').format("YYYYMMDDHH")}.json`;
+    const inputFile = `grib-data/${stamp}.${forecast}`;
 
-    var exec = require('child_process').exec, child;
+    const exec = require('child_process').exec;
+    exec(`converter/bin/grib2json --data --output ${outputFile} --names --compact ${inputFile}`, { maxBuffer: 500 * 1024 }, (error, stdout, stderr) => {
+        if (error) {
+            console.log('exec error: ' + error);
+        } else {
+            console.log(`${outputFile} converted..`);
 
-    child = exec('converter/bin/grib2json --data --output /var/www/html/weather/tile/wind_particles/'+moment(stamp, "YYYYMMDDHH").add(hours, 'hours').format("YYYYMMDDHH")+'.json --names --compact grib-data/'+stamp+'.'+forecast,
-        {maxBuffer: 500*1024},
-        function (error, stdout, stderr){
+            // Read the JSON file
+            fs.readFile(outputFile, 'utf8', (err, data) => {
+                if (err) {
+                    console.error('Error reading JSON file:', err);
+                    return;
+                }
 
-            if(error){
-                console.log('exec error: ' + error);
-            }
+                try {
+                    // Parse JSON data
+                    const jsonData = JSON.parse(data);
 
-            else {
-                console.log("json-data/"+stamp+"."+forecast+".json converted..");
-                console.log("json-data/"+ moment(stamp, "YYYYMMDDHH").add(hours, 'hours').format("YYYYMMDDHH"))
-            }
-        });
+                    // Apply rounding to numerical values
+                    const roundedData = roundNumbers(jsonData);
+
+                    // Write back the modified JSON
+                    fs.writeFile(outputFile, JSON.stringify(roundedData, null, 2), (err) => {
+                        if (err) {
+                            console.error('Error writing rounded JSON:', err);
+                        } else {
+                            console.log(`Rounded JSON data written to ${outputFile}`);
+                        }
+                    });
+                } catch (err) {
+                    console.error('Error parsing JSON:', err);
+                }
+            });
+        }
+    });
 }
 
 function runForecast(targetMoment){
