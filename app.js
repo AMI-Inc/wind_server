@@ -255,6 +255,7 @@ function getGribData(targetMoment){
 function convertGribToJson(stamp, targetMoment) {
     const outputFile = `/var/www/html/weather/tile/wind_particles/${stamp}.json`;
     const inputFile = `grib-data/${stamp}.f000`;
+    const compressedFile = `/var/www/html/weather/tile/wind_particles/${stamp}.json.gz`;
 
     const exec = require('child_process').exec;
     exec(`converter/bin/grib2json --data --output ${outputFile} --names --compact ${inputFile}`, { maxBuffer: 500 * 1024 }, (error, stdout, stderr) => {
@@ -400,7 +401,7 @@ function roundNumbers(obj) {
 function convertGribToJsonForecast(stamp, targetMoment, forecast, hours) {
     const outputFile = `/var/www/html/weather/tile/wind_particles/${moment(stamp, "YYYYMMDDHH").add(hours, 'hours').format("YYYYMMDDHH")}.json`;
     const inputFile = `grib-data/${stamp}.${forecast}`;
-
+    const compressedFile = `/var/www/html/weather/tile/wind_particles/${stamp}.json.gz`;
     const exec = require('child_process').exec;
     exec(`converter/bin/grib2json --data --output ${outputFile} --names --compact ${inputFile}`, { maxBuffer: 500 * 1024 }, (error, stdout, stderr) => {
         if (error) {
