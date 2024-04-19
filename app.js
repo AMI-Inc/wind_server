@@ -375,7 +375,7 @@ function roundNumbers(obj) {
     return obj;
 }
 
-function convertGribToJsonForecast(stamp, forecast, hours) {
+function convertGribToJsonForecast(stamp, targetMoment, forecast, hours) {
     const outputFile = `/var/www/html/weather/tile/wind_particles/${moment(stamp, "YYYYMMDDHH").add(hours, 'hours').format("YYYYMMDDHH")}.json`;
     const inputFile = `grib-data/${stamp}.${forecast}`;
 
