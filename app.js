@@ -282,6 +282,7 @@ function convertGribToJson(stamp, targetMoment) {
                             console.error('Error writing rounded JSON:', err);
                         } else {
                             console.log(`Rounded JSON data written to ${outputFile}`);
+                            runForecast(targetMoment);
                         }
                     });
                 } catch (err) {
