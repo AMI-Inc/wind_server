@@ -1,4 +1,5 @@
 var express = require("express");
+const zlib = require('zlib');
 var moment = require("moment");
 var http = require('http');
 var request = require('request');
@@ -268,7 +269,7 @@ function convertGribToJson(stamp, targetMoment) {
                     console.error('Error reading JSON file:', err);
                     return;
                 }
-
+                
                 try {
                     // Parse JSON data
                     const jsonData = JSON.parse(data);
@@ -276,13 +277,30 @@ function convertGribToJson(stamp, targetMoment) {
                     // Apply rounding to numerical values
                     const roundedData = roundNumbers(jsonData);
 
-                    // Write back the modified JSON with rounded values
-                    fs.writeFile(outputFile, JSON.stringify(roundedData, null, 2), (err) => {
+                    // Convert JSON to string
+                    const jsonString = JSON.stringify(roundedData, null, 2);
+
+                    // Compress JSON data to gzip
+                    zlib.gzip(jsonString, (err, compressedBuffer) => {
                         if (err) {
-                            console.error('Error writing rounded JSON:', err);
+                            console.error('Error compressing JSON:', err);
                         } else {
-                            console.log(`Rounded JSON data written to ${outputFile}`);
-                            runForecast(targetMoment);
+                            // Write compressed data to .json.gz file
+                            fs.writeFile(compressedFile, compressedBuffer, (err) => {
+                                if (err) {
+                                    console.error('Error writing compressed JSON:', err);
+                                } else {
+                                    runForecast(targetMoment);
+                                    console.log(`Compressed JSON data written to ${compressedFile}`);
+                                }
+
+                                // Clean up: remove the original JSON file
+                                fs.unlink(outputFile, (err) => {
+                                    if (err) {
+                                        console.error('Error removing JSON file:', err);
+                                    }
+                                });
+                            });
                         }
                     });
                 } catch (err) {
@@ -404,12 +422,29 @@ function convertGribToJsonForecast(stamp, targetMoment, forecast, hours) {
                     // Apply rounding to numerical values
                     const roundedData = roundNumbers(jsonData);
 
-                    // Write back the modified JSON
-                    fs.writeFile(outputFile, JSON.stringify(roundedData, null, 2), (err) => {
+                    // Convert JSON to string
+                    const jsonString = JSON.stringify(roundedData, null, 2);
+
+                    // Compress JSON data to gzip
+                    zlib.gzip(jsonString, (err, compressedBuffer) => {
                         if (err) {
-                            console.error('Error writing rounded JSON:', err);
+                            console.error('Error compressing JSON:', err);
                         } else {
-                            console.log(`Rounded JSON data written to ${outputFile}`);
+                            // Write compressed data to .json.gz file
+                            fs.writeFile(compressedFile, compressedBuffer, (err) => {
+                                if (err) {
+                                    console.error('Error writing compressed JSON:', err);
+                                } else {
+                                    console.log(`Compressed JSON data written to ${compressedFile}`);
+                                }
+
+                                // Clean up: remove the original JSON file
+                                fs.unlink(outputFile, (err) => {
+                                    if (err) {
+                                        console.error('Error removing JSON file:', err);
+                                    }
+                                });
+                            });
                         }
                     });
                 } catch (err) {
