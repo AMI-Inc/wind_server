@@ -360,41 +360,6 @@ function getGribDataForecast(targetMoment, forecast, hours){
     return deferred.promise;
 }
 
-function convertGribToJsonForecast(stamp, targetMoment, forecast, hours){
-
-    const outputFile = `/var/www/html/weather/tile/wind_particles/${moment(stamp, "YYYYMMDDHH").add(hours, 'hours').format("YYYYMMDDHH")}.json`;
-    const inputFile = `grib-data/${stamp}.${forecast}`;
-
-    const command = `converter/bin/grib2json --data --compact ${inputFile}`;
-
-    exec(command, { maxBuffer: 500 * 1024 }, (error, stdout, stderr) => {
-        if (error) {
-            console.log('exec error: ' + error);
-        } else {
-            console.log(`${inputFile} converted to JSON..`);
-
-            try {
-                // Parse stdout as JSON
-                const jsonData = JSON.parse(stdout);
-
-                // Recursively round numerical values
-                const roundedData = roundNumbers(jsonData);
-
-                // Write rounded JSON data to output file
-                fs.writeFile(outputFile, JSON.stringify(roundedData, null, 2), (err) => {
-                    if (err) {
-                        console.error('Error writing rounded JSON:', err);
-                    } else {
-                        console.log(`Rounded JSON data written to ${outputFile}`);
-                    }
-                });
-            } catch (err) {
-                console.error('Error parsing or rounding JSON:', err);
-            }
-        }
-    });
-}
-
 function roundNumbers(obj) {
     if (typeof obj === 'number') {
         return parseFloat(obj.toFixed(2));
@@ -409,6 +374,48 @@ function roundNumbers(obj) {
     }
     return obj;
 }
+
+function convertGribToJsonForecast(stamp, forecast, hours) {
+    const outputFile = `/var/www/html/weather/tile/wind_particles/${moment(stamp, "YYYYMMDDHH").add(hours, 'hours').format("YYYYMMDDHH")}.json`;
+    const inputFile = `grib-data/${stamp}.${forecast}`;
+
+    const exec = require('child_process').exec;
+    exec(`converter/bin/grib2json --data --output ${outputFile} --names --compact ${inputFile}`, { maxBuffer: 500 * 1024 }, (error, stdout, stderr) => {
+        if (error) {
+            console.log('exec error: ' + error);
+        } else {
+            console.log(`${outputFile} converted..`);
+
+            // Read the JSON file
+            fs.readFile(outputFile, 'utf8', (err, data) => {
+                if (err) {
+                    console.error('Error reading JSON file:', err);
+                    return;
+                }
+
+                try {
+                    // Parse JSON data
+                    const jsonData = JSON.parse(data);
+
+                    // Apply rounding to numerical values
+                    const roundedData = roundNumbers(jsonData);
+
+                    // Write back the modified JSON
+                    fs.writeFile(outputFile, JSON.stringify(roundedData, null, 2), (err) => {
+                        if (err) {
+                            console.error('Error writing rounded JSON:', err);
+                        } else {
+                            console.log(`Rounded JSON data written to ${outputFile}`);
+                        }
+                    });
+                } catch (err) {
+                    console.error('Error parsing JSON:', err);
+                }
+            });
+        }
+    });
+}
+
 
 function runForecast(targetMoment){
     for (var i = 6; i <= 120; i += 6) {
