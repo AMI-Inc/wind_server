@@ -251,42 +251,45 @@ function getGribData(targetMoment){
     return deferred.promise;
 }
 
-function convertGribToJson(stamp, targetMoment){
+function convertGribToJson(stamp, targetMoment) {
+    const outputFile = `/var/www/html/weather/tile/wind_particles/${stamp}.json`;
+    const inputFile = `grib-data/${stamp}.f000`;
 
-    // mk sure we've got somewhere to put output
-    checkPath('json-data', true);
+    const exec = require('child_process').exec;
+    exec(`converter/bin/grib2json --data --output ${outputFile} --names --compact ${inputFile}`, { maxBuffer: 500 * 1024 }, (error, stdout, stderr) => {
+        if (error) {
+            console.log('exec error: ' + error);
+        } else {
+            console.log("Conversion completed..");
 
-    var exec = require('child_process').exec, child;
-
-    child = exec('converter/bin/grib2json --data --output /var/www/html/weather/tile/wind_particles/'+stamp+'.json --names --compact grib-data/'+stamp+'.f000',
-        {maxBuffer: 500*1024},
-        function (error, stdout, stderr){
-
-            if(error){
-                console.log('exec error: ' + error);
-            }
-
-            else {
-                console.log("converted..");
-
-                // don't keep raw grib data
-                // exec('rm grib-data/*');
-
-                // if we don't have older stamp, try and harvest one
-                var prevMoment = moment(targetMoment).subtract(6, 'hours');
-                var prevStamp = prevMoment.format('YYYYMMDD') + roundHours(prevMoment.hour(), 6);
-
-                if(!checkPath('/var/www/html/weather/tile/wind_particles/'+ prevStamp +'.json', false)){
-
-                    console.log("Run forecast for: "+ stamp);
-                    runForecast(targetMoment);
+            // Read the JSON file
+            fs.readFile(outputFile, 'utf8', (err, data) => {
+                if (err) {
+                    console.error('Error reading JSON file:', err);
+                    return;
                 }
 
-                else {
-                    console.log('got older, no need to harvest further');
+                try {
+                    // Parse JSON data
+                    const jsonData = JSON.parse(data);
+
+                    // Apply rounding to numerical values
+                    const roundedData = roundNumbers(jsonData);
+
+                    // Write back the modified JSON with rounded values
+                    fs.writeFile(outputFile, JSON.stringify(roundedData, null, 2), (err) => {
+                        if (err) {
+                            console.error('Error writing rounded JSON:', err);
+                        } else {
+                            console.log(`Rounded JSON data written to ${outputFile}`);
+                        }
+                    });
+                } catch (err) {
+                    console.error('Error parsing JSON:', err);
                 }
-            }
-        });
+            });
+        }
+    });
 }
 
 function getGribDataForecast(targetMoment, forecast, hours){
