@@ -127,7 +127,7 @@ app.get('/nearest', cors(corsOptions), function(req, res, next){
 
 
 /**
- * Ping for new data every 6 hours
+ * Ping for new data every 1 hours
  */
 function run(targetMoment){
     console.log("Start of run function.");
@@ -142,7 +142,7 @@ function run(targetMoment){
     });
     
     // Calculate next run time
-    const nextRunTime = moment.utc().add(6, 'hours');
+    const nextRunTime = moment.utc().add(1, 'hours');
     let timeUntilNextRun = nextRunTime.diff(moment.utc());
 
     console.log("Scheduled next run to start in approximately", timeUntilNextRun, "milliseconds.");
@@ -458,7 +458,7 @@ function convertGribToJsonForecast(stamp, targetMoment, forecast, hours) {
 
 
 function runForecast(targetMoment){
-    for (var i = 6; i <= 120; i += 6) {
+    for (var i = 6; i <= 240; i += 6) {
         var forecast = 'f' + i.toString().padStart(3, '0');
         getGribDataForecast(targetMoment, forecast, i).then(function(response){
 
