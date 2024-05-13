@@ -322,7 +322,7 @@ function getGribDataForecast(targetMoment, forecast, hours){
             console.log('Reached end of today\'s data.');
             return;
         }
-
+        console.log(baseDir, 'gfs.t'+ roundHours(moment(targetMoment).hour(), 6) +'z.pgrb2.1p00.' + forecast);
         var stamp = moment(targetMoment).format('YYYYMMDD') + roundHours(moment(targetMoment).hour(), 6);
         var urlstamp = stamp.slice(0,8)+'/'+stamp.slice(8,10)+'/atmos';
         request.get({
